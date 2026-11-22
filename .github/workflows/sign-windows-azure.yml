@@ -89,46 +89,19 @@ jobs:
         run: |
           foreach ($name in @('CLIENT_ID','TENANT_ID','SUBSCRIPTION_ID','SIGNING_ENDPOINT','SIGNING_ACCOUNT','SIGNING_PROFILE')) {
             if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
-              throw "Missing signing parameter: $name. Open docs/SIGNING_SETUP_RU.md"
+              throw "Missing signing parameter: $name. Read docs/SIGNING_SETUP_RU.md"
             }
           }
-          if ($env:SIGNING_ENDPOINT -notmatch '^https://[a-z0-9-]+\.codesigning\.azure\.net/?
-        working-directory: Vikora_1.4_RC3
-        shell: pwsh
-        run: python packaging/windows_smoke.py --exe dist/Vikora/Vikora.exe
+          if (!$env:SIGNING_ENDPOINT.StartsWith('https://')) { throw 'Invalid Azure signing endpoint' }
 
-      - name: Проверить установку и переустановку
-        working-directory: Vikora_1.4_RC3
-        shell: pwsh
-        run: ./packaging/test_installer_windows.ps1
-
-      - name: Записать SHA-256 установщика
-        working-directory: Vikora_1.4_RC3
-        shell: pwsh
-        run: |
-          Get-FileHash dist/installer/Vikora_Setup_*.exe -Algorithm SHA256 | ForEach-Object {
-            "$($_.Hash)  $(Split-Path $_.Path -Leaf)" | Out-File dist/installer/SHA256SUMS.txt -Encoding ascii
-          }
-
-      - name: Предоставить установщик для скачивания
-        uses: actions/upload-artifact@v4
-        with:
-          name: vikora-windows-signed-azure
-          path: |
-            Vikora_1.4_RC3/dist/installer/Vikora_Setup_*.exe
-            Vikora_1.4_RC3/dist/installer/SHA256SUMS.txt
-          if-no-files-found: error
-          retention-days: 30
-) { throw 'Invalid signing endpoint' }
-
-      - name: Войти в Azure без постоянного пароля
+      - name: Войти в Azure через OIDC
         uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Подписать Vikora.exe через Azure
+      - name: Подписать Vikora.exe
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ vars.VIKORA_SIGNING_ENDPOINT }}
@@ -145,8 +118,8 @@ jobs:
         run: |
           $file = 'Vikora_1.4_RC3/dist/Vikora/Vikora.exe'
           $signature = Get-AuthenticodeSignature -FilePath $file
-          if ($signature.Status -ne 'Valid') { throw "App signature verification failed: $($signature.Status)" }
-          Write-Host "Signed application publisher: $($signature.SignerCertificate.Subject)"
+          if ($signature.Status -ne 'Valid') { throw "App signature invalid: $($signature.Status)" }
+          Write-Host "Publisher: $($signature.SignerCertificate.Subject)"
 
       - name: Пересобрать установщик с подписанной Vikora.exe
         working-directory: Vikora_1.4_RC3
@@ -157,7 +130,7 @@ jobs:
           & $compiler packaging\Vikora.iss
           if ($LASTEXITCODE -ne 0) { throw 'Installer repackage failed' }
 
-      - name: Подписать установщик через Azure
+      - name: Подписать установщик
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ vars.VIKORA_SIGNING_ENDPOINT }}
@@ -172,11 +145,11 @@ jobs:
       - name: Проверить подпись установщика
         shell: pwsh
         run: |
-          $files = @(Get-ChildItem 'Vikora_1.4_RC3/dist/installer/Vikora_Setup_*.exe')
-          if ($files.Count -ne 1) { throw 'Installer file missing' }
-          $signature = Get-AuthenticodeSignature -FilePath $files[0].FullName
-          if ($signature.Status -ne 'Valid') { throw "Installer signature verification failed: $($signature.Status)" }
-          Write-Host "Signed installer publisher: $($signature.SignerCertificate.Subject)"
+          $setups = @(Get-ChildItem 'Vikora_1.4_RC3/dist/installer/Vikora_Setup_*.exe')
+          if ($setups.Count -ne 1) { throw 'Installer missing' }
+          $signature = Get-AuthenticodeSignature -FilePath $setups[0].FullName
+          if ($signature.Status -ne 'Valid') { throw "Installer signature invalid: $($signature.Status)" }
+          Write-Host "Publisher: $($signature.SignerCertificate.Subject)"
 
       - name: Проверить запуск собранного Vikora.exe
         working-directory: Vikora_1.4_RC3
@@ -199,7 +172,7 @@ jobs:
       - name: Предоставить установщик для скачивания
         uses: actions/upload-artifact@v4
         with:
-          name: vikora-windows-installer-test
+          name: vikora-windows-signed-azure
           path: |
             Vikora_1.4_RC3/dist/installer/Vikora_Setup_*.exe
             Vikora_1.4_RC3/dist/installer/SHA256SUMS.txt

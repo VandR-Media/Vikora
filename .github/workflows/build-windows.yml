@@ -1,0 +1,91 @@
+name: Vikora — собрать установщик Windows
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
+      - '.github/workflows/build-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-installer:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    steps:
+      - name: Получить файлы репозитория
+        uses: actions/checkout@v4
+
+      - name: Проверить исходный ZIP
+        shell: pwsh
+        run: |
+          $archive = 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
+          if (!(Test-Path $archive)) { throw "Отсутствует исходный архив: $archive" }
+          $expected = 'cb16a50a55444b956a1b29a44801ac71a85125100f68424fa3479120c9264f6e'
+          $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "Не совпала контрольная сумма архива: $actual" }
+          Expand-Archive -Path $archive -DestinationPath . -Force
+          if (!(Test-Path 'Vikora_1.4_RC3/pyproject.toml')) { throw 'Исходники не распакованы' }
+
+      - name: Установить Python 3.11 для сборки
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+
+      - name: Проверить состав исходников
+        working-directory: Vikora_1.4_RC3
+        shell: pwsh
+        run: python packaging/verify_release_sources.py
+
+      - name: Запустить тесты в Windows
+        working-directory: Vikora_1.4_RC3
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+          python -m pytest -q
+
+      - name: Установить компилятор установщика при необходимости
+        shell: pwsh
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) {
+            choco install innosetup -y --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'Не удалось установить Inno Setup' }
+          }
+
+      - name: Собрать Vikora.exe и установщик
+        working-directory: Vikora_1.4_RC3
+        shell: pwsh
+        run: ./packaging/build_windows.ps1 -RequireInstaller
+
+      - name: Проверить запуск собранного Vikora.exe
+        working-directory: Vikora_1.4_RC3
+        shell: pwsh
+        run: python packaging/windows_smoke.py --exe dist/Vikora/Vikora.exe
+
+      - name: Проверить установку и переустановку
+        working-directory: Vikora_1.4_RC3
+        shell: pwsh
+        run: ./packaging/test_installer_windows.ps1
+
+      - name: Записать SHA-256 установщика
+        working-directory: Vikora_1.4_RC3
+        shell: pwsh
+        run: |
+          Get-FileHash dist/installer/Vikora_Setup_*.exe -Algorithm SHA256 | ForEach-Object {
+            "$($_.Hash)  $(Split-Path $_.Path -Leaf)" | Out-File dist/installer/SHA256SUMS.txt -Encoding ascii
+          }
+
+      - name: Предоставить установщик для скачивания
+        uses: actions/upload-artifact@v4
+        with:
+          name: vikora-windows-installer-test
+          path: |
+            Vikora_1.4_RC3/dist/installer/Vikora_Setup_*.exe
+            Vikora_1.4_RC3/dist/installer/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30

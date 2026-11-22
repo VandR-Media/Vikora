@@ -5,7 +5,6 @@ on:
   push:
     paths:
       - 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
-      - '.github/workflows/build-windows.yml'
 
 permissions:
   contents: read

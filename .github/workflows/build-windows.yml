@@ -6,6 +6,9 @@ on:
     paths:
       - 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
       - '.github/workflows/build-windows.yml'
+      - 'packaging/fix_rc4.py'
+      - 'branding/vikora_logo_png.base64'
+      - '.github/workflows/build-windows.yml'
 
 permissions:
   contents: read
@@ -36,6 +39,14 @@ jobs:
       - name: Обновить проверку установщика Windows
         shell: pwsh
         run: Copy-Item .github/scripts/test_installer_windows.ps1 Vikora_1.4_RC3/packaging/test_installer_windows.ps1 -Force
+
+      - name: Применить исправление RC4 и фирменный значок
+        shell: pwsh
+        run: |
+          python -m pip install 'Pillow>=10,<12'
+          if ($LASTEXITCODE -ne 0) { throw 'Pillow could not be installed' }
+          python packaging/fix_rc4.py Vikora_1.4_RC3
+          if ($LASTEXITCODE -ne 0) { throw 'RC4 source patch failed' }
 
       - name: Установить Python 3.11 для сборки
         uses: actions/setup-python@v5

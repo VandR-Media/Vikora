@@ -1,4 +1,4 @@
-name: Vikora — собрать установщик Windows (RC5)
+name: Vikora — собрать установщик Windows (RC6)
 
 on:
   workflow_dispatch:
@@ -13,6 +13,7 @@ on:
       - '.github/workflows/build-windows.yml'
       - 'packaging/fix_rc4.py'
       - 'packaging/rc5_patch_zlib.b64'
+      - 'packaging/rc6_patch_zlib.b64'
       - 'branding/vikora_logo_png.base64'
       - '.github/workflows/build-windows.yml'
 
@@ -67,6 +68,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'RC5 patch decode failed' }
           python packaging/fix_rc5.py Vikora_1.4_RC3
           if ($LASTEXITCODE -ne 0) { throw 'RC5 patch failed' }
+
+      - name: Применить исправление RC6 (экспорт, оформление, скорость)
+        shell: pwsh
+        run: |
+          python -c "import base64,zlib,pathlib; raw=pathlib.Path('packaging/rc6_patch_zlib.b64').read_text(encoding='ascii').strip(); pathlib.Path('packaging/fix_rc6.py').write_bytes(zlib.decompress(base64.b64decode(raw)))"
+          if ($LASTEXITCODE -ne 0) { throw 'RC6 patch decode failed' }
+          python packaging/fix_rc6.py Vikora_1.4_RC3
+          if ($LASTEXITCODE -ne 0) { throw 'RC6 patch failed' }
 
       - name: Проверить состав исходников
         working-directory: Vikora_1.4_RC3

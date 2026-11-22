@@ -1,3 +1,4 @@
+# RC7 regression rerun: legacy expectations updated; strict citation validation retained.
 name: Vikora — собрать установщик Windows (RC7)
 
 on:

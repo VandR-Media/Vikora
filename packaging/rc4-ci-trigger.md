@@ -1,3 +1,3 @@
-# Vikora RC6 — Windows acceptance build
+# Vikora RC6 — Windows build rerun
 
-Regression fixes: ChatGPT JSON attachment response.blob(), immediate Overview/Vacancies navigation with deferred network checks, and refined Vikora icon plus wordmark. Tests only with synthetic data.
+Validates JSON download, faster navigation, styled wordmark and corrected RC6 regression assertions. Synthetic test data only.

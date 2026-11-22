@@ -33,6 +33,10 @@ jobs:
         shell: pwsh
         run: Copy-Item .github/scripts/windows_smoke.py Vikora_1.4_RC3/packaging/windows_smoke.py -Force
 
+      - name: Обновить проверку установщика Windows
+        shell: pwsh
+        run: Copy-Item .github/scripts/test_installer_windows.ps1 Vikora_1.4_RC3/packaging/test_installer_windows.ps1 -Force
+
       - name: Установить Python 3.11 для сборки
         uses: actions/setup-python@v5
         with:

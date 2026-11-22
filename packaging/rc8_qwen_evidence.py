@@ -19,7 +19,7 @@ replace_once(local, """MAX_CHUNKS = 5
 
 class LocalAIError""", """MAX_CHUNKS = 5
 
-LOCAL_SYSTEM_PROMPT = SYSTEM_PROMPT + r\''' 
+LOCAL_SYSTEM_PROMPT = SYSTEM_PROMPT + r''' 
 ADDITIONAL LOCAL QWEN RULES — FOLLOW THESE EXACTLY:
 1. EVIDENCE MUST BE A VERBATIM, CONTIGUOUS SUBSTRING copied from the supplied resume_pages[].text.
    Preserve the original spelling, punctuation, capitalization and wording. Do not paraphrase,
@@ -39,7 +39,7 @@ ADDITIONAL LOCAL QWEN RULES — FOLLOW THESE EXACTLY:
    with "never used the skill".
 6. Use "unknown" when the resume contains no relevant mention or the evidence is genuinely
    ambiguous. Never invent a quote to justify an unknown result.
-\'''
+'''
 
 
 def _discard_unknown_evidence(raw: dict) -> dict:

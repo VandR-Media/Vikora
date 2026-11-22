@@ -1,3 +1,3 @@
-# Vikora RC4: Windows hotfix verification
+# Vikora 1.4 RC5 — Windows verification
 
-This pull request triggers a Windows build of RC4 with a disabled Uvicorn console logger, explicit error logs, and the bespoke Vikora icon. The source archive is validated by SHA-256 before the patch is applied.
+This PR triggers RC5 Windows tests for reopening the local desktop app and dedicated Vacancies navigation, plus frozen EXE and installer smoke checks.

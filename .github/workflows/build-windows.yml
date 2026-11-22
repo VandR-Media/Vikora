@@ -1,3 +1,4 @@
+# RC8 Windows CI refresh after the Qwen prompt/fixture update.
 # RC8: Qwen citation and conservative classification tuning after RC7 laptop audit.
 name: Vikora — собрать установщик Windows (RC8)
 

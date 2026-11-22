@@ -40,6 +40,12 @@ jobs:
         shell: pwsh
         run: Copy-Item .github/scripts/test_installer_windows.ps1 Vikora_1.4_RC3/packaging/test_installer_windows.ps1 -Force
 
+      - name: Установить Python 3.11 для сборки
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+
       - name: Применить исправление RC4 и фирменный значок
         shell: pwsh
         run: |
@@ -47,12 +53,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Pillow could not be installed' }
           python packaging/fix_rc4.py Vikora_1.4_RC3
           if ($LASTEXITCODE -ne 0) { throw 'RC4 source patch failed' }
-
-      - name: Установить Python 3.11 для сборки
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          architecture: x64
 
       - name: Проверить состав исходников
         working-directory: Vikora_1.4_RC3

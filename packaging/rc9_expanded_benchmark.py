@@ -1,4 +1,4 @@
-# RC9 benchmark scope: 24 additional scenarios, 30 synthetic cases total.
+# RC9 benchmark scope: 24 additional scenarios, 46 synthetic cases total.
 """RC9: add 24 harder synthetic HR-evidence scenarios (30 total)."""
 from __future__ import annotations
 

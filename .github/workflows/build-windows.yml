@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
+      - '.github/workflows/build-windows.yml'
 
 permissions:
   contents: read
@@ -27,6 +28,10 @@ jobs:
           if ($actual -ne $expected) { throw "Не совпала контрольная сумма архива: $actual" }
           Expand-Archive -Path $archive -DestinationPath . -Force
           if (!(Test-Path 'Vikora_1.4_RC3/pyproject.toml')) { throw 'Исходники не распакованы' }
+
+      - name: Обновить smoke-проверку Windows
+        shell: pwsh
+        run: Copy-Item .github/scripts/windows_smoke.py Vikora_1.4_RC3/packaging/windows_smoke.py -Force
 
       - name: Установить Python 3.11 для сборки
         uses: actions/setup-python@v5

@@ -1,3 +1,4 @@
+# RC8 CI rerun after correcting the version-label assertion in the patch script.
 # RC8: Qwen citation and conservative classification tuning after RC7 laptop audit.
 name: Vikora — собрать установщик Windows (RC8)
 

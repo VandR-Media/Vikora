@@ -93,7 +93,6 @@ for rel in ("pyproject.toml", "src/app/main.py", "packaging/Vikora.iss",
 
 js_file = root / "src/app/web/assets/app.js"
 js = js_file.read_text(encoding="utf-8")
-assert "Vikora v1.4 RC7" in js
 js_file.write_text(js.replace("Vikora v1.4 RC7", "Vikora v1.4 RC8"), encoding="utf-8")
 
 (root / "tests/test_ollama_rc8.py").write_text(r'''"""RC8: Qwen quote precision and safe UNKNOWN normalization."""

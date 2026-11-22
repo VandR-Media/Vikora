@@ -43,7 +43,7 @@ ADDITIONAL LOCAL QWEN RULES — FOLLOW THESE EXACTLY:
 
 
 def _discard_unknown_evidence(raw: dict) -> dict:
-    """Drop irrelevant model quotes on UNKNOWN; this can never create a positive claim."""
+    # Drop irrelevant model quotes on UNKNOWN; this can never create a positive claim.
     items = raw.get("results")
     if isinstance(items, list):
         for item in items:

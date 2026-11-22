@@ -222,6 +222,24 @@ legacy_test = legacy_test.replace(
 )
 rc8_test.write_text(legacy_test, encoding="utf-8")
 
+# Keep the original RC8 comparator regression focused on its original 22-case baseline.
+# The new 24 scenarios have their own RC9 contract tests and must not change that fixture.
+quality_test = root / "tests/test_quality_v14.py"
+quality_source = quality_test.read_text(encoding="utf-8")
+assert quality_source.count("assert len(cases) == 22") == 1
+quality_source = quality_source.replace("assert len(cases) == 22", "assert len(cases) == 46", 1)
+old_comparison = "result = qa.evaluate_cases('heuristic', cases, assess=fake_correct)"
+assert quality_source.count(old_comparison) == 1
+quality_source = quality_source.replace(
+    old_comparison,
+    "result = qa.evaluate_cases('heuristic', cases[:22], assess=fake_correct)",
+    1,
+)
+old_route_count = "len(found.json()['cases']) == 22"
+assert quality_source.count(old_route_count) == 1
+quality_source = quality_source.replace(old_route_count, "len(found.json()['cases']) == 46", 1)
+quality_test.write_text(quality_source, encoding="utf-8")
+
 # RC9 is a separate experimental installer identity; RC8 remains reproducible.
 for rel in ("pyproject.toml", "src/app/main.py", "packaging/Vikora.iss",
             "VERSION.txt", "packaging/verify_release_sources.py",

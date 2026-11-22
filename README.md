@@ -25,6 +25,6 @@ Vikora предназначена для одного пользователя �
 
 Архив: `Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip`
 
-Контрольная сумма SHA-256: `13492f26b957aea65530a3ba529f62f80fa8902a8190b1f2fa3f65a50ff4210b`.
+Контрольная сумма SHA-256: `a19791dd762ba718303c3253cfc80bf56f539c14e79951b631540f6906edb689`.
 
 Workflow: `.github/workflows/build-windows.yml`. На Windows автоматически выполняются тесты, сборка приложения, проверка запуска и установщика.

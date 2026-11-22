@@ -22,7 +22,7 @@ jobs:
         run: |
           $archive = 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
           if (!(Test-Path $archive)) { throw "Отсутствует исходный архив: $archive" }
-          $expected = '13492f26b957aea65530a3ba529f62f80fa8902a8190b1f2fa3f65a50ff4210b'
+          $expected = 'a19791dd762ba718303c3253cfc80bf56f539c14e79951b631540f6906edb689'
           $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actual -ne $expected) { throw "Не совпала контрольная сумма архива: $actual" }
           Expand-Archive -Path $archive -DestinationPath . -Force

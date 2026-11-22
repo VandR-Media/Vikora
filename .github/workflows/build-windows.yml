@@ -2,6 +2,11 @@ name: Vikora — собрать установщик Windows
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packaging/rc4-ci-trigger.md'
+      - '.github/workflows/build-windows.yml'
   push:
     paths:
       - 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'

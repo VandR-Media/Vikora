@@ -1,4 +1,4 @@
-name: Vikora — собрать установщик Windows
+name: Vikora — собрать установщик Windows (RC5)
 
 on:
   workflow_dispatch:
@@ -12,6 +12,7 @@ on:
       - 'Vikora_v1.4_RC3_Windows_ReleaseKit_source.zip'
       - '.github/workflows/build-windows.yml'
       - 'packaging/fix_rc4.py'
+      - 'packaging/rc5_patch_zlib.b64'
       - 'branding/vikora_logo_png.base64'
       - '.github/workflows/build-windows.yml'
 
@@ -58,6 +59,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Pillow could not be installed' }
           python packaging/fix_rc4.py Vikora_1.4_RC3
           if ($LASTEXITCODE -ne 0) { throw 'RC4 source patch failed' }
+
+      - name: Применить исправление RC5 (повторный запуск и переход в Вакансии)
+        shell: pwsh
+        run: |
+          python -c "import base64,zlib,pathlib; raw=pathlib.Path('packaging/rc5_patch_zlib.b64').read_text(encoding='ascii').strip(); pathlib.Path('packaging/fix_rc5.py').write_bytes(zlib.decompress(base64.b64decode(raw)))"
+          if ($LASTEXITCODE -ne 0) { throw 'RC5 patch decode failed' }
+          python packaging/fix_rc5.py Vikora_1.4_RC3
+          if ($LASTEXITCODE -ne 0) { throw 'RC5 patch failed' }
 
       - name: Проверить состав исходников
         working-directory: Vikora_1.4_RC3

@@ -216,4 +216,20 @@ def test_quality_report_only_contains_safe_error_code():
     "RC7 требует испытания на ноутбуке перед использованием реальных данных.\\n",
     encoding="utf-8",
 )
+# Existing RC6 tests must assert the new schema and sanitized error contract.
+# Their underlying requirements (loopback, verified citations) stay unchanged.
+legacy_path = root / "tests/test_personal_local_ai.py"
+legacy = legacy_path.read_text(encoding="utf-8")
+assert 'assert posted["format"] == "json"' in legacy
+legacy = legacy.replace(
+    'assert posted["format"] == "json"',
+    'assert isinstance(posted["format"], dict) and posted["format"]["type"] == "object"',
+    1)
+assert 'with pytest.raises(EvaluationFailure, match="excerpt not found"):' in legacy
+legacy = legacy.replace(
+    'with pytest.raises(EvaluationFailure, match="excerpt not found"):',
+    'with pytest.raises(EvaluationFailure, match="Локальная оценка не завершена"):',
+    1)
+legacy_path.write_text(legacy, encoding="utf-8")
+
 print("Vikora RC7 local AI diagnostics applied")

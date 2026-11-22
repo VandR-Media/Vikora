@@ -14,6 +14,7 @@ on:
       - 'packaging/fix_rc4.py'
       - 'packaging/rc5_patch_zlib.b64'
       - 'packaging/rc6_patch_zlib.b64'
+      - 'packaging/repair_ci_tests_rc6.py'
       - 'branding/vikora_logo_png.base64'
       - '.github/workflows/build-windows.yml'
 
@@ -76,6 +77,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'RC6 patch decode failed' }
           python packaging/fix_rc6.py Vikora_1.4_RC3
           if ($LASTEXITCODE -ne 0) { throw 'RC6 patch failed' }
+
+      - name: Обновить тесты версии RC6
+        shell: pwsh
+        run: python packaging/repair_ci_tests_rc6.py Vikora_1.4_RC3
 
       - name: Проверить состав исходников
         working-directory: Vikora_1.4_RC3

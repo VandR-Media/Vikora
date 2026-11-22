@@ -192,6 +192,8 @@ NEW_CASES = [
 
 assert len(NEW_CASES) == 24
 assert len({case["id"] for case in NEW_CASES}) == 24
+for case in NEW_CASES:
+    case["synthetic"] = True
 
 # Append 24 scenarios to the full 22-case RC8 suite; do not alter RC8 behaviour or prompts.
 dataset_path = root / "src/app/quality_cases_v14.json"
@@ -208,6 +210,17 @@ dataset_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", e
 qa = "src/app/services/quality_audit.py"
 replace_once(qa, 'DATASET_VERSION = "vikora-synthetic-v2"',
                 'DATASET_VERSION = "vikora-synthetic-v3"')
+
+# RC8's focused regression test must follow the dataset version bump.
+rc8_test = root / "tests/test_ollama_rc8.py"
+legacy_test = rc8_test.read_text(encoding="utf-8")
+assert 'assert quality_audit.DATASET_VERSION == "vikora-synthetic-v2"' in legacy_test
+legacy_test = legacy_test.replace(
+    'assert quality_audit.DATASET_VERSION == "vikora-synthetic-v2"',
+    'assert quality_audit.DATASET_VERSION == "vikora-synthetic-v3"',
+    1,
+)
+rc8_test.write_text(legacy_test, encoding="utf-8")
 
 # RC9 is a separate experimental installer identity; RC8 remains reproducible.
 for rel in ("pyproject.toml", "src/app/main.py", "packaging/Vikora.iss",

@@ -1,3 +1,3 @@
-# Vikora RC4: Windows hotfix verification
+# Vikora RC6 — Windows acceptance build
 
-This pull request triggers a Windows build of RC4 with a disabled Uvicorn console logger, explicit error logs, and the bespoke Vikora icon. The source archive is validated by SHA-256 before the patch is applied.
+Regression fixes: ChatGPT JSON attachment response.blob(), immediate Overview/Vacancies navigation with deferred network checks, and refined Vikora icon plus wordmark. Tests only with synthetic data.

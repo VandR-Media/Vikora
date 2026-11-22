@@ -35,3 +35,7 @@ SHA-256 установщика: `68dcf75c2b910afd45bc550915490547901d5e26f1704a9
 ### Для разработчика
 
 Исходный архив RC3 зафиксирован по SHA-256. Сценарий `.github/workflows/build-windows.yml` применяет проверенное исправление `packaging/fix_rc4.py`, восстанавливает иконку из `branding/vikora_logo_png.base64`, запускает тесты, PyInstaller, Inno Setup, smoke-test и проверку переустановки.
+
+## Цифровая подпись Windows
+
+[Инструкция по настройке Azure Artifact Signing и GitHub Secrets](docs/SIGNING_SETUP_RU.md). Подписанная сборка запускается вручную после подтверждения издателя; сертификаты и закрытые ключи в репозиторий не помещаются.

@@ -1,6 +1,6 @@
 # RC8 CI rerun after correcting the version-label assertion in the patch script.
 # RC8: Qwen citation and conservative classification tuning after RC7 laptop audit.
-name: Vikora — собрать установщик Windows (RC8)
+name: Vikora — собрать установщик Windows (RC9)
 
 on:
   workflow_dispatch:
@@ -19,6 +19,7 @@ on:
       - 'packaging/repair_ci_tests_rc6.py'
       - 'packaging/rc7_ollama_diagnostics.py'
       - 'packaging/rc8_qwen_evidence.py'
+      - 'packaging/rc9_expanded_benchmark.py'
       - 'branding/vikora_logo_png.base64'
       - '.github/workflows/build-windows.yml'
 
@@ -98,6 +99,12 @@ jobs:
           python packaging/rc8_qwen_evidence.py Vikora_1.4_RC3
           if ($LASTEXITCODE -ne 0) { throw 'RC8 patch failed' }
 
+      - name: Применить RC9 (расширенный синтетический HR-бенчмарк)
+        shell: pwsh
+        run: |
+          python packaging/rc9_expanded_benchmark.py Vikora_1.4_RC3
+          if ($LASTEXITCODE -ne 0) { throw 'RC9 benchmark patch failed' }
+
       - name: Проверить состав исходников
         working-directory: Vikora_1.4_RC3
         shell: pwsh
@@ -146,7 +153,7 @@ jobs:
       - name: Предоставить установщик для скачивания
         uses: actions/upload-artifact@v4
         with:
-          name: vikora-windows-installer-test
+          name: vikora-rc9-windows-installer
           path: |
             Vikora_1.4_RC3/dist/installer/Vikora_Setup_*.exe
             Vikora_1.4_RC3/dist/installer/SHA256SUMS.txt

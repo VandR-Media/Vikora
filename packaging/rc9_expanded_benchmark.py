@@ -193,16 +193,16 @@ NEW_CASES = [
 assert len(NEW_CASES) == 24
 assert len({case["id"] for case in NEW_CASES}) == 24
 
-# Append the expanded set to RC8's six baseline cases; do not alter RC8 behaviour or prompts.
+# Append 24 scenarios to the full 22-case RC8 suite; do not alter RC8 behaviour or prompts.
 dataset_path = root / "src/app/quality_cases_v14.json"
 data = json.loads(dataset_path.read_text(encoding="utf-8"))
 assert data.get("version") == "vikora-synthetic-v2"
-assert len(data.get("cases", [])) == 6, "RC9 expected the six-case RC8 baseline"
+assert len(data.get("cases", [])) == 22, "RC9 expected the complete 22-case RC8 baseline"
 existing_ids = {case.get("id") for case in data["cases"]}
 assert not existing_ids.intersection(case["id"] for case in NEW_CASES)
 data["cases"].extend(NEW_CASES)
 data["version"] = "vikora-synthetic-v3"
-assert len(data["cases"]) == 30
+assert len(data["cases"]) == 46
 dataset_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 qa = "src/app/services/quality_audit.py"
@@ -242,12 +242,12 @@ EXPECTED_NEW_IDS = {
 }
 
 
-def test_rc9_benchmark_has_30_cases_and_24_new_scenarios():
+def test_rc9_benchmark_has_46_cases_and_24_new_scenarios():
     cases = quality_audit.read_synthetic_cases()
     assert quality_audit.DATASET_VERSION == "vikora-synthetic-v3"
-    assert len(cases) == 30
+    assert len(cases) == 46
     ids = [case["id"] for case in cases]
-    assert len(set(ids)) == 30
+    assert len(set(ids)) == 46
     assert EXPECTED_NEW_IDS.issubset(set(ids))
 
 
@@ -292,7 +292,7 @@ def test_rc9_benchmark_contains_distinct_context_and_evidence_traps():
 (root / "docs/RC9_BENCHMARK_DESIGN.md").write_text(
     "# Vikora 1.4 RC9 — расширенный синтетический HR-бенчмарк\n\n"
     "RC9 не меняет правила анализа Qwen3 из RC8. Изменяется только набор контрольных примеров: "
-    "6 сценариев RC8 плюс 24 новых, всего 30. Все резюме полностью вымышленные.\n\n"
+    "22 исходных сценария RC8 плюс 24 новых, всего 46. Все резюме полностью вымышленные.\n\n"
     "Новые группы проверок:\n"
     "- Срок и глубина опыта: SQL 4 года против требования 3 лет; SQL 1 год против требования 3 лет.\n"
     "- Контекст использования: навык команды против личного опыта; инструмент работодателя против личных задач.\n"
@@ -312,7 +312,7 @@ def test_rc9_benchmark_contains_distinct_context_and_evidence_traps():
 
 (root / "docs/RELEASE_NOTES_RC9.md").write_text(
     "# Vikora 1.4 RC9 — расширенная проверка локального ИИ\n\n"
-    "Добавлены 24 сложных синтетических сценария к шести сценариям RC8: всего 30. "
+    "Добавлены 24 сложных синтетических сценария к полному исходному набору из 22 сценариев RC8: всего 46. "
     "Проверяются длительность опыта, личное и командное использование инструментов, учебные и личные проекты, "
     "различие похожих программ, пользовательский опыт CRM, пороговые требования, противоречия, "
     "управление проектами и людьми, срок действия сертификатов и актуальность навыков. "
@@ -320,4 +320,4 @@ def test_rc9_benchmark_contains_distinct_context_and_evidence_traps():
     encoding="utf-8",
 )
 
-print("Vikora RC9 expanded synthetic benchmark applied: 30 cases total")
+print("Vikora RC9 expanded synthetic benchmark applied: 46 cases total")

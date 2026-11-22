@@ -1,4 +1,4 @@
-name: Vikora — собрать установщик Windows (RC6)
+name: Vikora — собрать установщик Windows (RC7)
 
 on:
   workflow_dispatch:
@@ -15,6 +15,7 @@ on:
       - 'packaging/rc5_patch_zlib.b64'
       - 'packaging/rc6_patch_zlib.b64'
       - 'packaging/repair_ci_tests_rc6.py'
+      - 'packaging/rc7_ollama_diagnostics.py'
       - 'branding/vikora_logo_png.base64'
       - '.github/workflows/build-windows.yml'
 
@@ -81,6 +82,12 @@ jobs:
       - name: Обновить тесты версии RC6
         shell: pwsh
         run: python packaging/repair_ci_tests_rc6.py Vikora_1.4_RC3
+
+      - name: Применить RC7 (диагностика Qwen3, строгий формат ответов)
+        shell: pwsh
+        run: |
+          python packaging/rc7_ollama_diagnostics.py Vikora_1.4_RC3
+          if ($LASTEXITCODE -ne 0) { throw 'RC7 patch failed' }
 
       - name: Проверить состав исходников
         working-directory: Vikora_1.4_RC3

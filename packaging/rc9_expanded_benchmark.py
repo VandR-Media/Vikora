@@ -235,6 +235,13 @@ quality_source = quality_source.replace(
     "result = qa.evaluate_cases('heuristic', cases[:22], assess=fake_correct)",
     1,
 )
+old_completed_count = "assert result['summary']['cases_completed'] == len(cases)"
+assert quality_source.count(old_completed_count) == 1
+quality_source = quality_source.replace(
+    old_completed_count,
+    "assert result['summary']['cases_completed'] == len(cases[:22])",
+    1,
+)
 old_route_count = "len(found.json()['cases']) == 22"
 assert quality_source.count(old_route_count) == 1
 quality_source = quality_source.replace(old_route_count, "len(found.json()['cases']) == 46", 1)

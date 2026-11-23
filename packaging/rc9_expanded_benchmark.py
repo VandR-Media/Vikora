@@ -339,7 +339,7 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
         unknown_statement = bool(unknown_pattern.search(full_text))
         commercial_required = bool(
             re.search(r"коммерческ\w*|оплачиваем\w*|профессиональн\w*", description, re.IGNORECASE)
-            and not re.search(r"не\\s+(?:обязателен|обязательно|требуется|нужен|нужно)", description, re.IGNORECASE)
+            and not re.search(r"не\s+(?:обязателен|обязательно|требуется|нужен|нужно)", description, re.IGNORECASE)
         )
         work_only_absent = bool(re.search(
             r"(?:в рабочих задачах|на работе|в работе).{0,100}(?:не использовал|не применял|не работал|не выполнял)",

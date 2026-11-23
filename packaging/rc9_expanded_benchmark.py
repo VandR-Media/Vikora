@@ -676,7 +676,54 @@ def draft_vacancy_with_ollama(role: str, notes: str) -> dict:
             "Локальная модель предложила некорректный черновик. Уточните описание и попробуйте снова."
         ) from exc
 '''
+local_ai_source += r'''
+
+# RC9: make ambiguity and partial coordination explicit for the local Qwen model.
+LOCAL_SYSTEM_PROMPT += r"""
+RC9 ADDITIONAL HR EVIDENCE RULES — APPLY THESE BEFORE CHOOSING A MATCH LEVEL:
+
+7. CONFLICTING EVIDENCE TAKES PRECEDENCE OVER A NEGATION:
+   Read the entire resume before deciding. If the same skill, experience or qualification has
+   both a positive statement (for example, it is listed as advanced or described as used)
+   and an explicit negative statement (for example, "never used it"), the resume is internally
+   contradictory. Choose match_level="unknown", not "not_met" and not "met". Do not select
+   whichever statement appears last, sounds stronger, or is in a particular resume section.
+   For this conflict, evidence must be [] and the rationale must not claim that the candidate
+   either has or lacks the skill.
+
+8. PARTIAL MEANS RELEVANT EXPERIENCE WITH INCOMPLETE SCOPE:
+   If the resume describes real activities directly related to the criterion, but does not
+   demonstrate the full level of responsibility, breadth, duration or ownership requested,
+   prefer "partial" over "not_met" when those activities are meaningful parts of the work.
+   Do not turn "did not own every part of the responsibility" into "has no relevant experience".
+   Keep "not_met" for a clearly unmet mandatory condition, an explicit absence of the required
+   experience, or experience that is unrelated to the criterion.
+
+9. PROJECT MANAGEMENT VERSUS PROJECT COORDINATION:
+   Distinguish end-to-end project ownership from coordination support. Tracking task status,
+   coordinating weekly team updates, reminding colleagues about deadlines, following up on
+   blockers, escalating delays or preparing progress reports are relevant project-coordination
+   activities. If a project manager retained ownership of the plan, budget, scope or final
+   decisions, assess project-management experience as "partial": do not mark it "met", but do
+   not mark it "not_met" merely because the candidate did not own the whole project.
+
+10. SAFE RATIONALE FOR UNKNOWN:
+    For "unknown", explain only that the available information is insufficient or conflicting.
+    Never state that the candidate lacks a skill, has no experience, or possesses a skill when
+    the selected result is "unknown". Do not infer a negative fact from missing or contradictory
+    information. Evidence must remain [] for every "unknown" result.
+
+These rules clarify evidence interpretation only. They do not change the JSON schema, exact-quote
+validation, privacy boundaries, or the rule that the model must not make hiring decisions.
+"""
+
 local_ai_path.write_text(local_ai_source, encoding="utf-8")
+
+# RC9: unknown results must not carry a model-generated factual claim in their rationale.
+# Keep the existing RC8 structural check: malformed non-list evidence still fails validation.
+replace_once(local_ai_path,
+             '                item["evidence"] = []',
+             '                item["evidence"] = []\n                item["rationale"] = "В резюме недостаточно однозначных сведений для оценки этого критерия."')
 
 local_route = "src/app/routes/local_ai.py"
 replace_once(local_route,
@@ -856,6 +903,101 @@ def test_local_profile_and_footer_labels_are_human_readable_and_current():
     assert "Vikora v1.4 RC9" in js
 ''', encoding="utf-8")
 
+(root / "tests/test_ollama_rc9.py").write_text(r'''"""RC9 local Qwen interpretation regressions. No live Ollama or real resumes required."""
+import json
+
+import pytest
+
+from app.services import local_ai
+
+CRITERIA = [{"key": "sql", "label": "SQL"}]
+PAGES = [{"page": 1, "text": "Вымышленное резюме. SQL указан в навыках, но в другом разделе сказано, что кандидат никогда его не использовала."}]
+
+
+def fake_client(monkeypatch, answer):
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return answer
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def post(self, url, json):
+            assert url == "http://127.0.0.1:11434/api/chat"
+            return FakeResponse()
+
+    monkeypatch.setattr(local_ai.httpx, "Client", FakeClient)
+
+
+def make_answer(level="unknown", evidence=None, rationale="Кандидат никогда не использовала SQL."):
+    if evidence is None:
+        evidence = []
+    return {"message": {"content": json.dumps({"results": [{
+        "criterion_key": "sql",
+        "match_level": level,
+        "evidence": evidence,
+        "rationale": rationale,
+    }]}, ensure_ascii=False)}}
+
+
+def test_rc9_prompt_prioritizes_contradictions_as_unknown():
+    prompt = local_ai.LOCAL_SYSTEM_PROMPT.lower()
+    assert "conflicting evidence takes precedence over a negation" in prompt
+    assert "internally contradictory" in prompt
+    assert 'match_level="unknown"' in prompt
+    assert "not select whichever statement appears last" in prompt
+
+
+def test_rc9_prompt_distinguishes_partial_coordination_from_no_experience():
+    prompt = local_ai.LOCAL_SYSTEM_PROMPT.lower()
+    assert "project management versus project coordination" in prompt
+    assert "weekly team updates" in prompt
+    assert 'assess project-management experience as "partial"' in prompt
+    assert 'do not mark it "not_met"' in prompt
+
+
+def test_rc9_unknown_evidence_and_rationale_are_safely_normalized(monkeypatch):
+    fake_client(monkeypatch, make_answer(
+        evidence=[{"page": 1, "excerpt": "SQL указан в навыках"}],
+        rationale="Кандидат никогда не использовала SQL и не имеет такого опыта.",
+    ))
+    result = local_ai.ollama_assess(CRITERIA, PAGES)
+    item = result["results"][0]
+    assert item["match_level"] == "unknown"
+    assert item["evidence"] == []
+    assert item["rationale"] == "В резюме недостаточно однозначных сведений для оценки этого критерия."
+    assert "никогда не использовала" not in item["rationale"]
+
+
+def test_rc9_unknown_without_evidence_still_gets_neutral_rationale(monkeypatch):
+    fake_client(monkeypatch, make_answer(
+        evidence=[],
+        rationale="Кандидат не владеет SQL.",
+    ))
+    result = local_ai.ollama_assess(CRITERIA, PAGES)
+    item = result["results"][0]
+    assert item["match_level"] == "unknown"
+    assert item["evidence"] == []
+    assert item["rationale"] == "В резюме недостаточно однозначных сведений для оценки этого критерия."
+
+
+def test_rc9_malformed_unknown_evidence_still_fails_closed(monkeypatch):
+    fake_client(monkeypatch, make_answer(evidence="SQL"))
+    with pytest.raises(local_ai.LocalAIError) as found:
+        local_ai.ollama_assess(CRITERIA, PAGES)
+    assert found.value.diagnostic_code == "invalid_structure"
+''', encoding="utf-8")
+
 (root / "docs/RC9_BENCHMARK_DESIGN.md").write_text(
     "# Vikora 1.4 RC9 — расширенный синтетический HR-бенчмарк\n\n"
     "RC9 не меняет правила анализа Qwen3 из RC8. Изменяется только набор контрольных примеров: "
@@ -885,7 +1027,10 @@ def test_local_profile_and_footer_labels_are_human_readable_and_current():
     "Проверяются длительность опыта, личное и командное использование инструментов, учебные и личные проекты, "
     "различие похожих программ, пользовательский опыт CRM, пороговые требования, противоречия, "
     "управление проектами и людьми, срок действия сертификатов и актуальность навыков. "
-    "Промпт и алгоритм строгой проверки цитат Qwen3 из RC8 не меняются. Обычная проверка получает "
+    "Для локальной Qwen3 уточнены правила: противоречивые утверждения дают unknown, а реальная координация "
+    "проекта без полного владения бюджетом и объёмом оценивается как partial. Для unknown автоматически "
+    "убираются цитаты и нейтрально нормализуется пояснение, чтобы не делать неподтверждённых выводов. "
+    "Строгая проверка точных цитат сохраняется. Обычная проверка получает "
     "контекстное распознавание навыков, синонимов, отрицаний и учебной/рабочей практики. "
     "Локальный тест принимает все 46 примеров; облачные проверки по-прежнему ограничены шестью. "
     "Добавлено создание черновиков вакансий локальной Qwen3 через Ollama без облачной передачи. "
@@ -894,4 +1039,4 @@ def test_local_profile_and_footer_labels_are_human_readable_and_current():
     encoding="utf-8",
 )
 
-print("Vikora RC9 expanded synthetic benchmark applied: 46 cases total")
+print("Vikora RC9 expanded synthetic benchmark and Qwen interpretation safeguards applied: 46 cases total")

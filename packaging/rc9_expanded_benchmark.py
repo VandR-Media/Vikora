@@ -720,12 +720,6 @@ validation, privacy boundaries, or the rule that the model must not make hiring 
 
 local_ai_path.write_text(local_ai_source, encoding="utf-8")
 
-# RC9: unknown results must not carry a model-generated factual claim in their rationale.
-# Keep the existing RC8 structural check: malformed non-list evidence still fails validation.
-replace_once(local_ai_path,
-             '                item["evidence"] = []',
-             '                item["evidence"] = []\n                item["rationale"] = "В резюме недостаточно однозначных сведений для оценки этого критерия."')
-
 local_route = "src/app/routes/local_ai.py"
 replace_once(local_route,
              "from app.services.local_ai import probe_ollama",
@@ -952,7 +946,7 @@ def make_answer(level="unknown", evidence=None, rationale="Кандидат ни
 
 
 def test_rc9_prompt_prioritizes_contradictions_as_unknown():
-    prompt = local_ai.LOCAL_SYSTEM_PROMPT.lower()
+    prompt = " ".join(local_ai.LOCAL_SYSTEM_PROMPT.lower().split())
     assert "conflicting evidence takes precedence over a negation" in prompt
     assert "internally contradictory" in prompt
     assert 'match_level="unknown"' in prompt
@@ -960,7 +954,7 @@ def test_rc9_prompt_prioritizes_contradictions_as_unknown():
 
 
 def test_rc9_prompt_distinguishes_partial_coordination_from_no_experience():
-    prompt = local_ai.LOCAL_SYSTEM_PROMPT.lower()
+    prompt = " ".join(local_ai.LOCAL_SYSTEM_PROMPT.lower().split())
     assert "project management versus project coordination" in prompt
     assert "weekly team updates" in prompt
     assert 'assess project-management experience as "partial"' in prompt
@@ -976,7 +970,7 @@ def test_rc9_unknown_evidence_and_rationale_are_safely_normalized(monkeypatch):
     item = result["results"][0]
     assert item["match_level"] == "unknown"
     assert item["evidence"] == []
-    assert item["rationale"] == "В резюме недостаточно однозначных сведений для оценки этого критерия."
+    assert item["rationale"] == "В тексте резюме нет однозначного подтверждения. Требуется ручная проверка."
     assert "никогда не использовала" not in item["rationale"]
 
 
@@ -989,7 +983,7 @@ def test_rc9_unknown_without_evidence_still_gets_neutral_rationale(monkeypatch):
     item = result["results"][0]
     assert item["match_level"] == "unknown"
     assert item["evidence"] == []
-    assert item["rationale"] == "В резюме недостаточно однозначных сведений для оценки этого критерия."
+    assert item["rationale"] == "В тексте резюме нет однозначного подтверждения. Требуется ручная проверка."
 
 
 def test_rc9_malformed_unknown_evidence_still_fails_closed(monkeypatch):

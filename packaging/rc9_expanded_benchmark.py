@@ -455,6 +455,9 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
             elif skill_list:
                 level = "partial"
                 rationale = "Навык указан в списке, но конкретные задачи и уровень владения не описаны."
+            elif any(re.search(r"\bбез\s+" + re.escape(hit["term"]) + r"(?!\w)", hit["sentence"], re.IGNORECASE) for hit in hits):
+                level = "unknown"
+                rationale = "Название технологии упомянуто как отсутствующее, без доказательств владения."
             elif (re.search(r"нет\s+опыта\s+" + re.escape(hits[0]["term"]), full_text, re.IGNORECASE)
                   and re.search(r"только\s+изучени\w*", full_text, re.IGNORECASE)):
                 level = "unknown"

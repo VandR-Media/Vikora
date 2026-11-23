@@ -244,8 +244,8 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
         "project_management": ("управление проектами", "project management", "координировал", "координировала"),
         "people_management": ("управление командой", "руководитель команды", "руководителем команды",
                              "прямых подчинённых", "непосредственным руководителем"),
-        "first_aid": ("первая помощь", "first aid"),
-        "driving_license": ("водительское удостоверение", "водительских прав",
+        "first_aid": ("первая помощь", "первой помощи", "сертификат по оказанию первой помощи", "first aid"),
+        "driving_license": ("водительское удостоверение", "водительского удостоверения", "водительские права", "водительских прав",
                             "права категории B", "категория B"),
     }
     task_pattern = re.compile(
@@ -337,7 +337,14 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
         skill_list = any(list_pattern.search(hit["sentence"]) for hit in hits)
         personal = bool(personal_pattern.search(full_text))
         unknown_statement = bool(unknown_pattern.search(full_text))
-        commercial_required = bool(re.search(r"коммерческ\w*|оплачиваем\w*|профессиональн\w*", description, re.IGNORECASE))
+        commercial_required = bool(
+            re.search(r"коммерческ\w*|оплачиваем\w*|профессиональн\w*", description, re.IGNORECASE)
+            and not re.search(r"не\\s+(?:обязателен|обязательно|требуется|нужен|нужно)", description, re.IGNORECASE)
+        )
+        work_only_absent = bool(re.search(
+            r"(?:в рабочих задачах|на работе|в работе).{0,100}(?:не использовал|не применял|не работал|не выполнял)",
+            full_text, re.IGNORECASE,
+        ))
         commercial_absent = bool(re.search(
             r"коммерческ\w*(?:\s+\w+){0,8}\s+(?:нет|не было|отсутствует)|"
             r"(?:нет|не было|отсутствует)\s+коммерческ\w*|"
@@ -380,7 +387,7 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
             if team_actor and not candidate_is_actor:
                 team_only.append(hit)
                 continue
-            if task_pattern.search(sentence) and not explicit_negative(hit):
+            if task_pattern.search(sentence) and not explicit_negative(hit) and not unknown_pattern.search(sentence):
                 task_hits.append(hit)
 
         evidence = [{"page": hits[0]["page"], "excerpt": hits[0]["excerpt"]}]
@@ -412,7 +419,7 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
             rationale = "В резюме есть противоречие между заявленным навыком и прямым отрицанием опыта."
         elif negative:
             # A commercial-only denial does not erase personal/course practice for a general criterion.
-            if personal and commercial_absent and not commercial_required:
+            if personal and (commercial_absent or work_only_absent) and not commercial_required:
                 level = "partial"
                 rationale = "Есть личная или учебная практика, но коммерческий опыт не подтверждён."
             else:

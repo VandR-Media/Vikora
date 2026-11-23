@@ -420,9 +420,9 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
             rationale = "В резюме есть противоречие между заявленным навыком и прямым отрицанием опыта."
         elif negative:
             # A commercial-only denial does not erase personal/course practice for a general criterion.
-            if personal and (commercial_absent or work_only_absent) and not commercial_required:
+            if personal and not commercial_required:
                 level = "partial"
-                rationale = "Есть личная или учебная практика, но коммерческий опыт не подтверждён."
+                rationale = "Есть самостоятельное обучение или личная практика; рабочий опыт не подтверждён."
             else:
                 level = "not_met"
                 rationale = "В резюме прямо отрицается требуемый опыт или наличие навыка."

@@ -716,6 +716,7 @@ RC9 ADDITIONAL HR EVIDENCE RULES — APPLY THESE BEFORE CHOOSING A MATCH LEVEL:
 These rules clarify evidence interpretation only. They do not change the JSON schema, exact-quote
 validation, privacy boundaries, or the rule that the model must not make hiring decisions.
 """
+'''
 
 local_ai_path.write_text(local_ai_source, encoding="utf-8")
 

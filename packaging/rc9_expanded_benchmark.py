@@ -215,9 +215,9 @@ replace_once(qa, 'DATASET_VERSION = "vikora-synthetic-v2"',
 # RC9: allow the complete 46-case local benchmark, while keeping paid cloud runs capped at six.
 replace_once("src/app/routes/quality_audit.py",
              "case_ids: list[str] = Field(min_length=1, max_length=24)",
-             "case_ids: list[str] = Field(min_length=1, max_length=46)")
+             "case_ids: list[str] = Field(min_length=1, max_length=50)")
 replace_once(qa, "limit = 6 if provider in CLOUD_PROVIDERS else 24",
-                "limit = 6 if provider in CLOUD_PROVIDERS else 46")
+                "limit = 6 if provider in CLOUD_PROVIDERS else 50")
 replace_once(qa, "return 'keyword-heuristic-v1'", "return 'keyword-heuristic-v2'")
 
 # RC9: improve the ordinary non-AI checker. It remains conservative and requires
@@ -281,7 +281,7 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
     list_pattern = re.compile(r"\b(?:навыки|ключевые навыки|список|skills)\s*[:—-]", re.IGNORECASE)
     unknown_pattern = re.compile(
         r"(?:не описано|не указано|не сообщается|не уточняется|нет сведений|"
-        r"ничего не сказано|контекст использования не описан|не подтверждено|неизвестно)",
+        r"ничего не сказано|контекст использования не описан|не подтверждено|неизвестно|сведений нет)",
         re.IGNORECASE,
     )
     team_pattern = re.compile(r"\b(?:коллеги|команда|сотрудники|компания|отдел)\b", re.IGNORECASE)
@@ -358,6 +358,9 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
         ))
 
         def explicit_negative(hit):
+            # No information is not proof of no skill.
+            if unknown_pattern.search(hit["sentence"]):
+                return False
             term = re.escape(hit["term"])
             context = hit["context"]
             before = re.search(
@@ -452,15 +455,21 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
             elif skill_list:
                 level = "partial"
                 rationale = "Навык указан в списке, но конкретные задачи и уровень владения не описаны."
-            elif unknown_statement or team_only:
+            elif team_only or re.search(r"\bNo\s+" + re.escape(hits[0]["term"]) + r"\s+experience\b", full_text, re.IGNORECASE):
                 level = "unknown"
-                rationale = "Упоминание относится к команде или не подтверждает личное использование кандидатом."
+                rationale = "Упоминание относится к команде или прямо не подтверждает опыт."
+            elif unknown_statement and not re.search(r"участвовал\w*\s+в\s+проекте", full_text, re.IGNORECASE):
+                level = "unknown"
+                rationale = "Текст прямо указывает на отсутствие проверяемых сведений о навыке."
+            elif re.search(r"участвовал\w*\s+в\s+проекте", full_text, re.IGNORECASE):
+                level = "partial"
+                rationale = "Описано участие в проекте, но не подтверждены личные технические задачи."
             elif personal:
                 level = "partial"
                 rationale = "Указано самостоятельное обучение или личная практика без подтверждения рабочих задач."
             else:
-                level = "unknown"
-                rationale = "Упоминание найдено, но личные практические действия не описаны."
+                level = "partial"
+                rationale = "Навык упоминается, но практические действия и уровень владения не подтверждены."
 
         results.append({
             "criterion_key": criterion["key"], "match_level": level,

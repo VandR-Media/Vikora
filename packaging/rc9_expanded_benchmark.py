@@ -290,7 +290,10 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
         key = str(criterion.get("key", "")).casefold()
         label = str(criterion.get("label") or "").strip()
         description = str(criterion.get("description") or "")
-        terms = [label, *criterion.get("aliases", []), *aliases.get(key, ())]
+        extra_aliases = criterion.get("aliases")
+        if not isinstance(extra_aliases, (list, tuple)):
+            extra_aliases = []
+        terms = [label, *extra_aliases, *aliases.get(key, ())]
         terms = list(dict.fromkeys(
             term.strip() for term in terms
             if isinstance(term, str) and term.strip()
@@ -420,8 +423,9 @@ HEURISTIC_FUNCTION = r'''def heuristic_assess(criteria: list[dict], pages: list[
             required = re.search(r"(?:не менее|минимум)\s*(\d+)\s*(?:лет|года|год)", description, re.IGNORECASE)
             actual = re.search(r"\b(\d+)\s*(?:лет|года|год)\b", full_text, re.IGNORECASE)
             date_range = re.search(r"с\s*(20\d{2})\s*по\s*(20\d{2})", full_text, re.IGNORECASE)
-            actual_years = int(actual.group(1)) if actual else (
-                int(date_range.group(2)) - int(date_range.group(1)) if date_range else None
+            actual_years = (
+                int(date_range.group(2)) - int(date_range.group(1)) if date_range
+                else int(actual.group(1)) if actual else None
             )
             if required and actual_years is not None and actual_years < int(required.group(1)):
                 level = "partial"
@@ -609,7 +613,7 @@ def test_rc9_benchmark_contains_distinct_context_and_evidence_traps():
     "Промпт и алгоритм строгой проверки цитат Qwen3 из RC8 не меняются. Обычная проверка получает "
     "контекстное распознавание навыков, синонимов, отрицаний и учебной/рабочей практики. "
     "Локальный тест принимает все 46 примеров; облачные проверки по-прежнему ограничены шестью. "
-    "Реальные резюме не используются.\\n",
+    "Реальные резюме не используются.\n",
     encoding="utf-8",
 )
 
